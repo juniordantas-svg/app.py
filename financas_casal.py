@@ -41,7 +41,7 @@ def login_screen():
         user = st.text_input("Usuário")
         pwd = st.text_input("Senha", type="password")
 
-        if user and pwd:
+        if st.button("Entrar"):
             if USERS.get(user.lower()) == pwd:
                 st.session_state.logged = True
                 st.experimental_rerun()
@@ -183,11 +183,11 @@ st.dataframe(df_anual)
 
 fig_anual = px.bar(
     df_anual,
-    x="data_vencimento",
+    x="Ano",
     y="Total",
     color="categoria",
     title="Resumo anual de despesas por categoria",
-    labels={"data_vencimento":"Ano", "Total":"Valor (R$)", "categoria":"Categoria"}
+    labels={"Ano":"Ano", "Total":"Valor (R$)", "categoria":"Categoria"}
 )
 st.plotly_chart(fig_anual, use_container_width=True)
 
