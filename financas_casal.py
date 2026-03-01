@@ -35,43 +35,36 @@ supabase = create_client(
 )
 
 # =========================
-# LOGIN MINIMALISTA FUNCIONAL
+# LOGIN FUNCIONAL
 # =========================
 if "logged" not in st.session_state:
     st.session_state.logged = False
 
 def login_screen():
+    # CSS para centralizar e criar caixa proporcional
     st.markdown("""
     <style>
-    /* Container centralizado verticalmente */
     .login-container {
         display: flex;
         justify-content: center;
         align-items: center;
         height: 80vh;
-        font-family: 'Arial', sans-serif;
     }
-
-    /* Caixa de login */
     .login-box {
-        background-color: #ffffff;
-        padding: 30px 40px;
+        background-color: #fff;
+        padding: 40px 35px;
         border-radius: 15px;
-        box-shadow: 0px 8px 20px rgba(0,0,0,0.15);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
         max-width: 360px;
         width: 100%;
         text-align: center;
     }
-
-    /* Título estiloso */
     .login-box h1 {
         color: #6a0dad;
-        font-size: 26px;
         margin-bottom: 25px;
         font-weight: 600;
+        font-size: 28px;
     }
-
-    /* Inputs compactos */
     .stTextInput>div>div>input {
         height: 38px;
         font-size: 16px;
@@ -79,8 +72,6 @@ def login_screen():
         border: 1px solid #ccc;
         padding: 0 10px;
     }
-
-    /* Botão estilizado */
     div.stButton>button {
         background-color: #6a0dad;
         color: white;
@@ -91,21 +82,17 @@ def login_screen():
         border: none;
         margin-top: 15px;
     }
-
     div.stButton>button:hover {
         background-color: #5b00b0;
         cursor: pointer;
     }
     </style>
-
     <div class="login-container">
         <div class="login-box">
             <h1>💜 Finanças Casal JR & VIC</h1>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
-    # FORMULÁRIO STREAMLIT PARA ENTER FUNCIONAR
+    # Formulário para login
     with st.form(key="login_form"):
         user = st.text_input("Usuário", placeholder="Digite seu usuário")
         pwd = st.text_input("Senha", type="password", placeholder="Digite sua senha")
@@ -114,10 +101,10 @@ def login_screen():
         if submit:
             if USERS.get(user.lower()) == pwd:
                 st.session_state.logged = True
-                st.success("Login realizado com sucesso!")
-                st.stop()  # recarrega app com sessão ativa
+                st.experimental_rerun()
             else:
                 st.error("Usuário ou senha inválidos")
+    st.markdown("</div></div>", unsafe_allow_html=True)
 
 if not st.session_state.logged:
     login_screen()
@@ -188,6 +175,7 @@ if st.button("Salvar compra", use_container_width=True):
 # CARREGAR DADOS E FILTROS
 # =========================
 df = carregar_dados()
+
 if df.empty:
     st.info("Nenhum registro encontrado")
     st.stop()
