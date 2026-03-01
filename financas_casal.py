@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import datetime
 import plotly.express as px
 
-st.set_page_config(page_title="Finanças do Casal", layout="wide")
+st.set_page_config(page_title="Finanças JR e VIC", layout="wide")
 
 # ---------------- LOGIN ----------------
 USERS = {"Junior": "9391", "Victoria": "1612"}
@@ -13,24 +13,79 @@ if "logged_in" not in st.session_state:
     st.session_state.user = None
 
 if not st.session_state.logged_in:
+    # Caixa centralizada com estilo moderno
     st.markdown(
         """
-        <div style="display:flex; justify-content:center; align-items:center; height:100vh;">
-            <div style="background-color:#f0f2f6; padding:40px; border-radius:15px; text-align:center; width:350px; box-shadow: 0px 0px 10px rgba(0,0,0,0.2);">
-            <h2>💑 Finanças do Casal</h2>
-            </div>
+        <style>
+        .login-box {
+            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            padding: 40px;
+            border-radius: 20px;
+            width: 400px;
+            margin: auto;
+            margin-top: 100px;
+            text-align: center;
+            color: white;
+            box-shadow: 0px 10px 25px rgba(0,0,0,0.3);
+        }
+        .login-box h2 {
+            margin-bottom: 30px;
+            font-family: 'Arial Black', sans-serif;
+        }
+        .stTextInput>div>div>input {
+            height: 40px;
+            border-radius: 10px;
+            border: none;
+            padding-left: 10px;
+        }
+        .stButton>button {
+            background-color: #ffdd59;
+            color: #333;
+            font-weight: bold;
+            height: 45px;
+            width: 100%;
+            border-radius: 12px;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        </style>
+        <div class="login-box">
+            <h2>💑 Finanças JR e VIC</h2>
         </div>
-        """, unsafe_allow_html=True
+        """,
+        unsafe_allow_html=True
     )
-    username = st.text_input("Usuário")
-    password = st.text_input("Senha", type="password")
-    if st.button("Entrar"):
+
+    username = st.text_input("Usuário", placeholder="Digite seu usuário", key="user_input")
+    password = st.text_input("Senha", placeholder="Digite sua senha", type="password", key="pass_input")
+
+    def login():
         if username in USERS and USERS[username] == password:
             st.session_state.logged_in = True
             st.session_state.user = username
-            st.success(f"Bem-vindo(a), {username}!")
+            st.experimental_rerun()
         else:
             st.error("Usuário ou senha incorretos")
+
+    st.button("Entrar", on_click=login, key="login_btn")
+
+    # Enter key login (compatível Streamlit)
+    st.markdown(
+        """
+        <script>
+        const inputUser = window.parent.document.querySelector('input[placeholder="Digite seu usuário"]');
+        const inputPass = window.parent.document.querySelector('input[placeholder="Digite sua senha"]');
+        const btn = window.parent.document.querySelector('button[kind="primary"]');
+        if(inputUser && inputPass && btn){
+            inputUser.addEventListener("keypress", function(e){if(e.key === "Enter"){btn.click();}});
+            inputPass.addEventListener("keypress", function(e){if(e.key === "Enter"){btn.click();}});
+        }
+        </script>
+        """,
+        unsafe_allow_html=True
+    )
+
 else:
     st.sidebar.success(f"Logado como: {st.session_state.user}")
 
