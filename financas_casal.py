@@ -20,36 +20,48 @@ USERS = {
 }
 
 # =========================
-# DB CONNECTION
+# DB CONNECTION (ROBUSTA)
 # =========================
 @st.cache_resource
 def get_conn():
-    return psycopg2.connect(
-        st.secrets["DATABASE_URL"],
-        cursor_factory=RealDictCursor,
-        sslmode="require"
-    )
+    try:
+        conn = psycopg2.connect(
+            st.secrets["DATABASE_URL"],
+            cursor_factory=RealDictCursor,
+            sslmode="require",
+            connect_timeout=10
+        )
+        return conn
+    except Exception as e:
+        st.error("❌ Erro ao conectar no banco de dados.")
+        st.exception(e)
+        st.stop()
 
 def init_db():
-    conn = get_conn()
-    cur = conn.cursor()
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
 
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS expenses (
-        id SERIAL PRIMARY KEY,
-        descricao TEXT,
-        valor_parcela NUMERIC,
-        total_parcelas INTEGER,
-        parcela_atual INTEGER,
-        data_vencimento DATE,
-        pago BOOLEAN DEFAULT FALSE,
-        data_pagamento TIMESTAMP
-    )
-    """)
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS expenses (
+            id SERIAL PRIMARY KEY,
+            descricao TEXT,
+            valor_parcela NUMERIC,
+            total_parcelas INTEGER,
+            parcela_atual INTEGER,
+            data_vencimento DATE,
+            pago BOOLEAN DEFAULT FALSE,
+            data_pagamento TIMESTAMP
+        )
+        """)
 
-    conn.commit()
-    cur.close()
-    conn.close()
+        conn.commit()
+        cur.close()
+
+    except Exception as e:
+        st.error("❌ Falha ao inicializar banco.")
+        st.exception(e)
+        st.stop()
 
 init_db()
 
@@ -60,23 +72,12 @@ if "logged" not in st.session_state:
     st.session_state.logged = False
 
 def login_screen():
-    st.markdown("""
-    <style>
-    .center-box{
-        display:flex;
-        justify-content:center;
-        align-items:center;
-        height:80vh;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
     col1, col2, col3 = st.columns([1,1,1])
     with col2:
         st.markdown("## 💑 Finanças Casal JR & VIC")
 
-        user = st.text_input("Usuário", key="user", placeholder="Digite e pressione Enter")
-        pwd = st.text_input("Senha", type="password", key="pwd", placeholder="Pressione Enter para entrar")
+        user = st.text_input("Usuário")
+        pwd = st.text_input("Senha", type="password")
 
         if user and pwd:
             if USERS.get(user.lower()) == pwd:
@@ -90,62 +91,74 @@ if not st.session_state.logged:
     st.stop()
 
 # =========================
-# FUNÇÕES DB
+# FUNÇÕES DB (SEGURAS)
 # =========================
 def inserir_parcelas(descricao, valor_total, parcelas, data_compra):
     conn = get_conn()
     cur = conn.cursor()
 
-    valor_parcela = round(valor_total / parcelas, 2)
+    try:
+        valor_parcela = round(valor_total / parcelas, 2)
 
-    for i in range(parcelas):
-        venc = data_compra + relativedelta(months=i)
-        cur.execute("""
-            INSERT INTO expenses
-            (descricao, valor_parcela, total_parcelas, parcela_atual, data_vencimento)
-            VALUES (%s,%s,%s,%s,%s)
-        """, (descricao, valor_parcela, parcelas, i+1, venc))
+        for i in range(parcelas):
+            venc = data_compra + relativedelta(months=i)
+            cur.execute("""
+                INSERT INTO expenses
+                (descricao, valor_parcela, total_parcelas, parcela_atual, data_vencimento)
+                VALUES (%s,%s,%s,%s,%s)
+            """, (descricao, valor_parcela, parcelas, i+1, venc))
 
-    conn.commit()
-    cur.close()
-    conn.close()
+        conn.commit()
+
+    except Exception as e:
+        st.error("Erro ao inserir parcelas")
+        st.exception(e)
+
+    finally:
+        cur.close()
 
 def carregar_dados():
     conn = get_conn()
-    df = pd.read_sql("SELECT * FROM expenses ORDER BY data_vencimento", conn)
-    conn.close()
-    return df
+    try:
+        df = pd.read_sql("SELECT * FROM expenses ORDER BY data_vencimento", conn)
+        return df
+    except Exception as e:
+        st.error("Erro ao carregar dados")
+        st.exception(e)
+        return pd.DataFrame()
 
 def marcar_pago(id, status):
     conn = get_conn()
     cur = conn.cursor()
 
-    if status:
-        cur.execute("""
-            UPDATE expenses
-            SET pago = TRUE,
-                data_pagamento = NOW()
-            WHERE id=%s
-        """, (id,))
-    else:
-        cur.execute("""
-            UPDATE expenses
-            SET pago = FALSE,
-                data_pagamento = NULL
-            WHERE id=%s
-        """, (id,))
+    try:
+        if status:
+            cur.execute("""
+                UPDATE expenses
+                SET pago = TRUE,
+                    data_pagamento = NOW()
+                WHERE id=%s
+            """, (id,))
+        else:
+            cur.execute("""
+                UPDATE expenses
+                SET pago = FALSE,
+                    data_pagamento = NULL
+                WHERE id=%s
+            """, (id,))
 
-    conn.commit()
-    cur.close()
-    conn.close()
+        conn.commit()
+    finally:
+        cur.close()
 
 def excluir(id):
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute("DELETE FROM expenses WHERE id=%s", (id,))
-    conn.commit()
-    cur.close()
-    conn.close()
+    try:
+        cur.execute("DELETE FROM expenses WHERE id=%s", (id,))
+        conn.commit()
+    finally:
+        cur.close()
 
 # =========================
 # HEADER
@@ -189,8 +202,8 @@ else:
 # =========================
 # KPIs
 # =========================
-total = df_mes["valor_parcela"].sum()
-pago = df_mes[df_mes["pago"] == True]["valor_parcela"].sum()
+total = df_mes["valor_parcela"].sum() if not df_mes.empty else 0
+pago = df_mes[df_mes["pago"] == True]["valor_parcela"].sum() if not df_mes.empty else 0
 restante = total - pago
 
 k1, k2, k3 = st.columns(3)
@@ -224,7 +237,7 @@ for _, row in df_mes.iterrows():
         st.rerun()
 
 # =========================
-# PDF PROFISSIONAL
+# PDF
 # =========================
 st.divider()
 
