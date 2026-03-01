@@ -2,8 +2,6 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import plotly.express as px
-import io
-import pdfkit
 
 st.set_page_config(page_title="Finanças do Casal", layout="wide")
 
@@ -69,7 +67,6 @@ else:
             st.success("Despesa cadastrada!")
 
     # ---------------- PARCELAS AUTOMÁTICAS ----------------
-    hoje = datetime.today()
     df = st.session_state.despesas
     novas_linhas = []
     for idx, row in df.iterrows():
@@ -136,19 +133,14 @@ else:
     st.metric("Pendente", f"R${pendente:.2f}")
 
     # Gráfico pizza
-    fig_pizza = px.pie(values=[pago, pendente], names=["Pago","Pendente"], color=["green","red"])
+    fig_pizza = px.pie(values=[pago, pendente], names=["Pago","Pendente"], color_discrete_map={"Pago":"green","Pendente":"red"})
     st.plotly_chart(fig_pizza, use_container_width=True)
 
     # Gráfico de barras (Despesas por dia)
     fig_bar = px.bar(df_dash, x=df_dash["Data"].dt.strftime("%d/%m/%Y"), y="Valor", color="Status", barmode="group")
     st.plotly_chart(fig_bar, use_container_width=True)
 
-    # ---------------- EXPORTAÇÃO CSV/PDF ----------------
+    # ---------------- EXPORTAÇÃO CSV ----------------
     st.markdown("## 📄 Exportar relatório")
     csv = df_dash.to_csv(index=False).encode("utf-8")
     st.download_button("Download CSV", data=csv, file_name=f"relatorio_{filtro_mes}.csv", mime="text/csv")
-
-    # PDF simples com pdfkit
-    html = df_dash.to_html(index=False)
-    pdf_bytes = pdfkit.from_string(html, False)
-    st.download_button("Download PDF", data=pdf_bytes, file_name=f"relatorio_{filtro_mes}.pdf", mime="application/pdf")
