@@ -3,8 +3,12 @@ import pandas as pd
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import plotly.express as px
-from fpdf import FPDF
 import os
+import io
+
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib import colors
 
 # =========================
 # CONFIG
@@ -66,7 +70,7 @@ def carregar_dados():
     if os.path.exists(DATA_FILE):
         df = pd.read_csv(DATA_FILE)
 
-        # 🔥 GARANTE COLUNAS (corrige KeyError)
+        # garante colunas (anti-KeyError)
         for col in COLUNAS_PADRAO:
             if col not in df.columns:
                 df[col] = None
@@ -81,11 +85,17 @@ def salvar_dados(df):
 df = carregar_dados()
 
 # =========================
-# LOGIN
+# LOGIN STATE
 # =========================
 if "logado" not in st.session_state:
     st.session_state.logado = False
 
+if "editando_id" not in st.session_state:
+    st.session_state.editando_id = None
+
+# =========================
+# LOGIN SCREEN
+# =========================
 def login_screen():
     st.markdown('<div class="big-title">💑 Finanças Casal JR & VIC</div>', unsafe_allow_html=True)
     st.markdown("### 🔐 Acesso Premium")
@@ -127,7 +137,6 @@ if st.button("💾 Salvar Compra"):
     if descricao and valor_total > 0:
 
         valor_parcela = valor_total / parcelas
-
         novos = []
 
         for i in range(parcelas):
@@ -180,13 +189,13 @@ c3.metric("⏳ Restante", f"R$ {restante_mes:,.2f}")
 st.markdown("## 📋 Despesas do mês")
 
 for idx, row in df_mes.iterrows():
+
     with st.container():
-        c1, c2, c3, c4, c5 = st.columns([3,2,2,1,1])
+        c1, c2, c3, c4, c5, c6 = st.columns([3,2,2,1,1,1])
 
         c1.write(row["Descricao"])
         c2.write(f"R$ {row['Valor Parcela']:,.2f}")
 
-        # 🔥 seguro contra KeyError
         try:
             parcela_txt = f"{int(row['Parcela'])}ª de {int(row['Total Parcelas'])}x"
         except:
@@ -194,6 +203,7 @@ for idx, row in df_mes.iterrows():
 
         c3.write(parcela_txt)
 
+        # ✅ checkbox pago
         pago = c4.checkbox(
             "Pago",
             value=bool(row["Pago"]),
@@ -206,7 +216,12 @@ for idx, row in df_mes.iterrows():
             salvar_dados(df)
             st.rerun()
 
-        if c5.button("🗑️", key=f"del_{idx}"):
+        # ✏️ editar
+        if c5.button("✏️", key=f"edit_{idx}"):
+            st.session_state.editando_id = row["ID"]
+
+        # 🗑️ excluir
+        if c6.button("🗑️", key=f"del_{idx}"):
             df = df.drop(idx)
             salvar_dados(df)
             st.rerun()
@@ -220,31 +235,49 @@ if not df_mes.empty:
     st.plotly_chart(fig, use_container_width=True)
 
 # =========================
-# PDF
+# PDF PROFISSIONAL
 # =========================
-def gerar_pdf():
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
-
-    pdf.cell(0, 10, "Financas Casal JR e VIC", ln=True)
-    pdf.cell(0, 10, f"Mes: {mes_filtro}", ln=True)
-    pdf.cell(0, 10, f"Gerado em: {datetime.now()}", ln=True)
-
-    pdf.ln(10)
-
-    for _, r in df_mes.iterrows():
-        pdf.cell(0, 8, f"{r['Descricao']} - R$ {r['Valor Parcela']}", ln=True)
-
-    nome = "relatorio_financas.pdf"
-    pdf.output(nome)
-    return nome
+st.markdown("## 📄 Relatório")
 
 if st.button("📄 Baixar relatório PDF"):
-    arquivo = gerar_pdf()
-    with open(arquivo, "rb") as f:
-        st.download_button(
-            "⬇️ Download PDF",
-            f,
-            file_name=arquivo
-        )
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer)
+    styles = getSampleStyleSheet()
+
+    elements = []
+    elements.append(Paragraph("Finanças Casal JR & VIC", styles["Title"]))
+    elements.append(Paragraph(f"Mês: {mes_filtro}", styles["Normal"]))
+    elements.append(Paragraph(f"Gerado em: {datetime.now()}", styles["Normal"]))
+    elements.append(Spacer(1, 12))
+
+    tabela_dados = [["Descrição", "Valor", "Parcela", "Pago"]]
+
+    for _, r in df_mes.iterrows():
+        try:
+            parcela = f"{int(r['Parcela'])} de {int(r['Total Parcelas'])}"
+        except:
+            parcela = "Única"
+
+        tabela_dados.append([
+            str(r["Descricao"]),
+            f"R$ {r['Valor Parcela']:.2f}",
+            parcela,
+            "Sim" if r["Pago"] else "Não"
+        ])
+
+    table = Table(tabela_dados)
+    table.setStyle([
+        ('BACKGROUND',(0,0),(-1,0),colors.grey),
+        ('GRID',(0,0),(-1,-1),0.5,colors.black)
+    ])
+
+    elements.append(table)
+    doc.build(elements)
+
+    st.download_button(
+        "⬇️ Download PDF",
+        data=buffer.getvalue(),
+        file_name=f"Relatorio_{mes_filtro}.pdf",
+        mime="application/pdf"
+    )
