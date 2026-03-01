@@ -35,14 +35,65 @@ supabase = create_client(
 )
 
 # =========================
-# LOGIN
+# LOGIN MINIMALISTA
 # =========================
 if "logged" not in st.session_state:
     st.session_state.logged = False
 
 def login_screen():
-    st.markdown("<h1 style='text-align: center; color: purple;'>💜 Finanças Casal JR & VIC</h1>", unsafe_allow_html=True)
-    st.write("")
+    st.markdown("""
+        <style>
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 80vh;
+        }
+        .login-box {
+            background-color: #f8f8f8;
+            padding: 40px 50px;
+            border-radius: 20px;
+            box-shadow: 0px 10px 30px rgba(0,0,0,0.1);
+            max-width: 350px;
+            width: 100%;
+            text-align: center;
+        }
+        .login-box h1 {
+            color: #6a0dad;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        .login-box input {
+            width: 90%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+        .login-box button {
+            width: 95%;
+            padding: 12px;
+            margin-top: 15px;
+            border-radius: 10px;
+            border: none;
+            background-color: #6a0dad;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .login-box button:hover {
+            background-color: #5a0099;
+        }
+        </style>
+        <div class="login-container">
+            <div class="login-box">
+                <h1>💜 Finanças Casal JR & VIC</h1>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # Inputs separados
     user = st.text_input("Usuário")
     pwd = st.text_input("Senha", type="password")
 
@@ -50,7 +101,7 @@ def login_screen():
         if USERS.get(user.lower()) == pwd:
             st.session_state.logged = True
             st.success("Login realizado com sucesso!")
-            st.stop()  # interrompe execução e recarrega app com sessão ativa
+            st.stop()  # recarrega app com sessão ativa
         else:
             st.error("Usuário ou senha inválidos")
 
