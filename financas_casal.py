@@ -67,26 +67,28 @@ else:
             st.success("Despesa cadastrada!")
 
     # ---------------- PARCELAS AUTOMÁTICAS ----------------
-    df = st.session_state.despesas
-    novas_linhas = []
-    for idx, row in df.iterrows():
-        if row["Parcelas_restantes"] > 1:
-            proximo_mes = row["Data"] + pd.DateOffset(months=1)
-            existe = ((df["Nome"] == row["Nome"]) &
-                      (df["Data"].dt.month == proximo_mes.month) &
-                      (df["Data"].dt.year == proximo_mes.year)).any()
-            if not existe:
-                novas_linhas.append({
-                    "ID": gerar_id(),
-                    "Nome": row["Nome"],
-                    "Valor": row["Valor"],
-                    "Data": proximo_mes,
-                    "Parcelas": row["Parcelas"],
-                    "Status": "Pendente",
-                    "Parcelas_restantes": row["Parcelas_restantes"]-1
-                })
-    if novas_linhas:
-        st.session_state.despesas = pd.concat([df, pd.DataFrame(novas_linhas)], ignore_index=True)
+    if not st.session_state.despesas.empty:
+        df = st.session_state.despesas
+        novas_linhas = []
+        for idx, row in df.iterrows():
+            if row["Parcelas_restantes"] > 1:
+                data_atual = pd.Timestamp(row["Data"])
+                proximo_mes = data_atual + pd.DateOffset(months=1)
+                existe = ((df["Nome"] == row["Nome"]) &
+                          (pd.to_datetime(df["Data"]).dt.month == proximo_mes.month) &
+                          (pd.to_datetime(df["Data"]).dt.year == proximo_mes.year)).any()
+                if not existe:
+                    novas_linhas.append({
+                        "ID": len(df) + len(novas_linhas) + 1,
+                        "Nome": row["Nome"],
+                        "Valor": row["Valor"],
+                        "Data": proximo_mes,
+                        "Parcelas": row["Parcelas"],
+                        "Status": "Pendente",
+                        "Parcelas_restantes": row["Parcelas_restantes"]-1
+                    })
+        if novas_linhas:
+            st.session_state.despesas = pd.concat([df, pd.DataFrame(novas_linhas)], ignore_index=True)
 
     # ---------------- TABELA INTERATIVA ----------------
     st.markdown("## 📊 Despesas")
@@ -116,31 +118,34 @@ else:
 
     # ---------------- DASHBOARD INTERATIVO ----------------
     st.markdown("## 📈 Dashboard")
-    filtro_mes = st.selectbox("Filtrar mês", options=sorted(despesas["Data"].dt.strftime("%Y-%m").unique()))
-    filtro_status = st.selectbox("Filtrar status", options=["Todos","Pendente","Pago"])
+    if not despesas.empty:
+        filtro_mes = st.selectbox("Filtrar mês", options=sorted(despesas["Data"].dt.strftime("%Y-%m").unique()))
+        filtro_status = st.selectbox("Filtrar status", options=["Todos","Pendente","Pago"])
 
-    df_dash = despesas.copy()
-    if filtro_status != "Todos":
-        df_dash = df_dash[df_dash["Status"] == filtro_status]
-    df_dash = df_dash[df_dash["Data"].dt.strftime("%Y-%m") == filtro_mes]
+        df_dash = despesas.copy()
+        if filtro_status != "Todos":
+            df_dash = df_dash[df_dash["Status"] == filtro_status]
+        df_dash = df_dash[df_dash["Data"].dt.strftime("%Y-%m") == filtro_mes]
 
-    total = df_dash["Valor"].sum()
-    pago = df_dash[df_dash["Status"]=="Pago"]["Valor"].sum()
-    pendente = total - pago
+        total = df_dash["Valor"].sum()
+        pago = df_dash[df_dash["Status"]=="Pago"]["Valor"].sum()
+        pendente = total - pago
 
-    st.metric("Total", f"R${total:.2f}")
-    st.metric("Pago", f"R${pago:.2f}")
-    st.metric("Pendente", f"R${pendente:.2f}")
+        st.metric("Total", f"R${total:.2f}")
+        st.metric("Pago", f"R${pago:.2f}")
+        st.metric("Pendente", f"R${pendente:.2f}")
 
-    # Gráfico pizza
-    fig_pizza = px.pie(values=[pago, pendente], names=["Pago","Pendente"], color_discrete_map={"Pago":"green","Pendente":"red"})
-    st.plotly_chart(fig_pizza, use_container_width=True)
+        # Gráfico pizza
+        fig_pizza = px.pie(values=[pago, pendente], names=["Pago","Pendente"],
+                           color_discrete_map={"Pago":"green","Pendente":"red"})
+        st.plotly_chart(fig_pizza, use_container_width=True)
 
-    # Gráfico de barras (Despesas por dia)
-    fig_bar = px.bar(df_dash, x=df_dash["Data"].dt.strftime("%d/%m/%Y"), y="Valor", color="Status", barmode="group")
-    st.plotly_chart(fig_bar, use_container_width=True)
+        # Gráfico de barras (Despesas por dia)
+        fig_bar = px.bar(df_dash, x=df_dash["Data"].dt.strftime("%d/%m/%Y"), y="Valor",
+                         color="Status", barmode="group")
+        st.plotly_chart(fig_bar, use_container_width=True)
 
-    # ---------------- EXPORTAÇÃO CSV ----------------
-    st.markdown("## 📄 Exportar relatório")
-    csv = df_dash.to_csv(index=False).encode("utf-8")
-    st.download_button("Download CSV", data=csv, file_name=f"relatorio_{filtro_mes}.csv", mime="text/csv")
+        # ---------------- EXPORTAÇÃO CSV ----------------
+        st.markdown("## 📄 Exportar relatório")
+        csv = df_dash.to_csv(index=False).encode("utf-8")
+        st.download_button("Download CSV", data=csv, file_name=f"relatorio_{filtro_mes}.csv", mime="text/csv")
