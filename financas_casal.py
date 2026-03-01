@@ -1,173 +1,301 @@
 import streamlit as st
 import pandas as pd
-import sqlite3
-from datetime import datetime
-from io import BytesIO
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet
+from datetime import datetime, date
+import plotly.express as px
+import bcrypt
+import os
+import io
 
-st.set_page_config(page_title="Finanças do Casal", layout="wide")
+# =========================
+# CONFIG
+# =========================
 
-# ---------------- BANCO SQLITE ----------------
-conn = sqlite3.connect("financas.db", check_same_thread=False)
-c = conn.cursor()
-
-c.execute("""
-CREATE TABLE IF NOT EXISTS despesas (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    descricao TEXT,
-    parcelas INTEGER,
-    valor REAL,
-    data TEXT,
-    pago INTEGER
+st.set_page_config(
+    page_title="Finanças Casal JR & VIC",
+    layout="wide",
+    page_icon="💑"
 )
-""")
-conn.commit()
 
-# ---------------- LOGIN ----------------
-USERS = {
-    "junior": "9391",
-    "victoria": "1612",
+DATA_FILE = "dados_financas.csv"
+
+# =========================
+# CSS PREMIUM
+# =========================
+
+st.markdown("""
+<style>
+.main-title {
+    text-align:center;
+    font-size:42px;
+    font-weight:800;
+    background: linear-gradient(90deg,#7c3aed,#06b6d4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
+
+.card {
+    background: #111827;
+    padding:20px;
+    border-radius:16px;
+    box-shadow:0 10px 25px rgba(0,0,0,0.4);
+}
+
+.status-pago {color:#10b981;font-weight:700;}
+.status-vencer {color:#f59e0b;font-weight:700;}
+.status-atrasado {color:#ef4444;font-weight:700;}
+</style>
+""", unsafe_allow_html=True)
+
+# =========================
+# USUÁRIOS COM HASH
+# =========================
+
+def hash_password(password):
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+
+def check_password(password, hashed):
+    return bcrypt.checkpw(password.encode(), hashed)
+
+USERS = {
+    "junior": hash_password("9391"),
+    "victoria": hash_password("1612"),
+}
+
+# =========================
+# DATA
+# =========================
+
+def load_data():
+    if os.path.exists(DATA_FILE):
+        df = pd.read_csv(DATA_FILE)
+        df["Vencimento"] = pd.to_datetime(df["Vencimento"])
+        df["Data Pagamento"] = pd.to_datetime(df["Data Pagamento"], errors="coerce")
+        return df
+    return pd.DataFrame(columns=[
+        "Descrição","Vencimento","Valor Parcela",
+        "Parcela Atual","Total Parcelas",
+        "Pago","Data Pagamento"
+    ])
+
+def save_data(df):
+    df.to_csv(DATA_FILE, index=False)
+
+# =========================
+# SESSION
+# =========================
 
 if "logged" not in st.session_state:
     st.session_state.logged = False
 
+if "df" not in st.session_state:
+    st.session_state.df = load_data()
+
+# =========================
+# LOGIN PREMIUM
+# =========================
 
 def login():
-    st.markdown("<h1 style='text-align:center;'>💰 Finanças do Casal</h1>", unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1, 2, 1])
 
+    st.markdown("<h1 class='main-title'>💑 Finanças Casal JR & VIC</h1>", unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns([1,2,1])
     with col2:
-        user = st.text_input("Usuário")
-        pwd = st.text_input("Senha", type="password")
+        st.markdown("### 🔐 Acesso seguro")
+
+        username = st.text_input("Usuário")
+        password = st.text_input("Senha", type="password")
 
         if st.button("Entrar", use_container_width=True):
-            if USERS.get(user.lower()) == pwd:
+
+            user_key = username.lower()
+
+            if user_key in USERS and check_password(password, USERS[user_key]):
                 st.session_state.logged = True
                 st.rerun()
             else:
                 st.error("Usuário ou senha inválidos")
 
+if not st.session_state.logged:
+    login()
+    st.stop()
 
-# ---------------- EXPORTAÇÃO ----------------
-def export_excel(df):
-    output = BytesIO()
-    df.to_excel(output, index=False)
-    return output.getvalue()
+# =========================
+# HEADER
+# =========================
 
+colA, colB = st.columns([6,1])
+colA.markdown("<h1 class='main-title'>💑 Finanças Casal JR & VIC</h1>", unsafe_allow_html=True)
 
-def export_pdf(df):
-    buffer = BytesIO()
+if colB.button("🚪 Logout"):
+    st.session_state.logged = False
+    st.rerun()
+
+# =========================
+# CADASTRO
+# =========================
+
+st.markdown("## ➕ Nova Despesa")
+
+c1,c2,c3 = st.columns(3)
+descricao = c1.text_input("Descrição")
+vencimento = c2.date_input("Vencimento", value=date.today())
+valor_total = c3.number_input("Valor total", min_value=0.0)
+
+parcelas = st.selectbox("Parcelamento", ["Única"]+[f"{i}x" for i in range(2,25)])
+
+if parcelas == "Única":
+    total_parcelas = 1
+else:
+    total_parcelas = int(parcelas.replace("x",""))
+
+parcela_atual = 1
+if total_parcelas > 1:
+    parcela_atual = st.number_input("Parcela atual",1,total_parcelas)
+
+valor_parcela = valor_total / total_parcelas if total_parcelas else 0
+
+if st.button("💾 Salvar despesa", use_container_width=True):
+
+    nova = {
+        "Descrição": descricao,
+        "Vencimento": pd.to_datetime(vencimento),
+        "Valor Parcela": valor_parcela,
+        "Parcela Atual": parcela_atual,
+        "Total Parcelas": total_parcelas,
+        "Pago": False,
+        "Data Pagamento": None
+    }
+
+    st.session_state.df = pd.concat(
+        [st.session_state.df, pd.DataFrame([nova])],
+        ignore_index=True
+    )
+
+    save_data(st.session_state.df)
+    st.success("Despesa registrada!")
+    st.rerun()
+
+# =========================
+# STATUS
+# =========================
+
+def status_conta(row):
+    hoje = date.today()
+    if row["Pago"]:
+        return "Pago"
+    elif row["Vencimento"].date() < hoje:
+        return "Atrasado"
+    return "A vencer"
+
+# =========================
+# LISTAGEM PREMIUM
+# =========================
+
+st.markdown("## 📋 Suas despesas")
+
+df = st.session_state.df.copy()
+
+for idx,row in df.iterrows():
+
+    status = status_conta(row)
+
+    if status=="Pago":
+        css="status-pago"
+    elif status=="Atrasado":
+        css="status-atrasado"
+    else:
+        css="status-vencer"
+
+    progresso = (row["Parcela Atual"]/row["Total Parcelas"])*100 if row["Total Parcelas"] else 100
+
+    with st.container():
+        st.markdown("<div class='card'>", unsafe_allow_html=True)
+
+        c1,c2,c3,c4 = st.columns([3,2,2,2])
+
+        c1.write(f"**{row['Descrição']}**")
+        c1.progress(progresso/100)
+
+        c2.markdown(f"<span class='{css}'>{status}</span>", unsafe_allow_html=True)
+
+        c3.write(f"{int(row['Parcela Atual'])}ª de {int(row['Total Parcelas'])}x")
+        c3.write(f"R$ {row['Valor Parcela']:.2f}")
+
+        pago_check = c4.checkbox("Pago", value=row["Pago"], key=f"pg{idx}")
+
+        if pago_check and not row["Pago"]:
+            st.session_state.df.at[idx,"Pago"]=True
+            st.session_state.df.at[idx,"Data Pagamento"]=datetime.now()
+            save_data(st.session_state.df)
+
+        if c4.button("Excluir", key=f"del{idx}"):
+            st.session_state.df = st.session_state.df.drop(idx).reset_index(drop=True)
+            save_data(st.session_state.df)
+            st.rerun()
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+# =========================
+# DASHBOARD PREMIUM
+# =========================
+
+st.markdown("## 📊 Dashboard Inteligente")
+
+if not df.empty:
+
+    df["Mes"] = df["Vencimento"].dt.to_period("M")
+    mes = st.selectbox("Mês", sorted(df["Mes"].astype(str).unique()))
+    df_mes = df[df["Mes"].astype(str)==mes]
+
+    total = df_mes["Valor Parcela"].sum()
+    pago = df_mes[df_mes["Pago"]==True]["Valor Parcela"].sum()
+    restante = total - pago
+
+    m1,m2,m3 = st.columns(3)
+    m1.metric("💰 Total", f"R$ {total:,.2f}")
+    m2.metric("✅ Pago", f"R$ {pago:,.2f}")
+    m3.metric("⏳ Restante", f"R$ {restante:,.2f}")
+
+    fig = px.pie(
+        names=["Pago","Restante"],
+        values=[pago,restante],
+        title="Distribuição do mês"
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+# =========================
+# PDF PREMIUM
+# =========================
+
+if not df.empty and st.button("📥 Baixar relatório premium"):
+
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib import colors
+
+    buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer)
     styles = getSampleStyleSheet()
-    elements = [Paragraph("Relatório de Despesas", styles["Title"]) ]
+    elements = []
 
-    data_table = [df.columns.tolist()] + df.astype(str).values.tolist()
-    table = Table(data_table)
-    table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
-    ]))
+    elements.append(Paragraph("Finanças Casal JR e VIC", styles["Title"]))
+    elements.append(Paragraph(f"Mês: {mes}", styles["Normal"]))
+    elements.append(Paragraph(f"Gerado em: {datetime.now()}", styles["Normal"]))
+    elements.append(Spacer(1,12))
+
+    data = [df_mes.columns.tolist()] + df_mes.astype(str).values.tolist()
+    table = Table(data)
+    table.setStyle([
+        ('BACKGROUND',(0,0),(-1,0),colors.grey),
+        ('GRID',(0,0),(-1,-1),0.5,colors.black)
+    ])
 
     elements.append(table)
     doc.build(elements)
-    return buffer.getvalue()
 
-
-# ---------------- APP PRINCIPAL ----------------
-
-def app():
-    st.title("📊 Controle Financeiro")
-
-    df = pd.read_sql("SELECT * FROM despesas", conn)
-
-    # converter data
-    if not df.empty:
-        df["data"] = pd.to_datetime(df["data"])
-        df["mes"] = df["data"].dt.to_period("M").astype(str)
-
-    # ---------------- FILTRO POR MÊS ----------------
-    st.subheader("📅 Filtro por mês")
-
-    if not df.empty:
-        meses = sorted(df["mes"].unique())
-        mes_selecionado = st.selectbox("Selecione o mês", ["Todos"] + meses)
-
-        if mes_selecionado != "Todos":
-            df_filtrado = df[df["mes"] == mes_selecionado].copy()
-        else:
-            df_filtrado = df.copy()
-    else:
-        mes_selecionado = "Todos"
-        df_filtrado = df.copy()
-
-    # ---------------- NOVA DESPESA ----------------
-    st.subheader("➕ Nova Despesa")
-    with st.form("form"):
-        col1, col2, col3, col4, col5 = st.columns(5)
-
-        desc = col1.text_input("Descrição")
-        parcelas = col2.number_input("Parcelas", min_value=1, step=1)
-        valor = col3.number_input("Valor", min_value=0.0, step=0.01)
-        data = col4.date_input("Data")
-        pago = col5.checkbox("Pago")
-
-        if st.form_submit_button("Salvar"):
-            c.execute(
-                "INSERT INTO despesas (descricao, parcelas, valor, data, pago) VALUES (?, ?, ?, ?, ?)",
-                (desc, parcelas, valor, data.strftime("%Y-%m-%d"), int(pago)),
-            )
-            conn.commit()
-            st.success("Despesa salva!")
-            st.rerun()
-
-    # ---------------- DASHBOARD ----------------
-    if not df_filtrado.empty:
-        df_filtrado["Pago"] = df_filtrado["pago"].astype(bool)
-        df_view = df_filtrado[["descricao", "parcelas", "valor", "data", "Pago"]]
-        df_view.columns = ["Descrição", "Parcelas", "Valor", "Data", "Pago"]
-
-        total = df_filtrado["valor"].sum()
-        pago_total = df_filtrado[df_filtrado["pago"] == 1]["valor"].sum()
-        a_vencer = total - pago_total
-
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Total Geral", f"R$ {total:,.2f}")
-        col2.metric("Total Pago", f"R$ {pago_total:,.2f}")
-        col3.metric("A Vencer", f"R$ {a_vencer:,.2f}")
-
-        st.dataframe(df_view, use_container_width=True)
-
-        # ---------------- GRÁFICOS ----------------
-        st.subheader("📊 Gráficos")
-
-        colg1, colg2 = st.columns(2)
-
-        # gráfico por status
-        status_df = pd.DataFrame({
-            "Status": ["Pago", "A vencer"],
-            "Valor": [pago_total, a_vencer],
-        })
-
-        colg1.bar_chart(status_df.set_index("Status"))
-
-        # gráfico por mês (geral)
-        if not df.empty:
-            mensal = df.groupby("mes")["valor"].sum().sort_index()
-            colg2.line_chart(mensal)
-
-        # ---------------- EXPORTAÇÃO ----------------
-        col1, col2 = st.columns(2)
-        col1.download_button("Baixar Excel", export_excel(df_view), "despesas.xlsx")
-        col2.download_button("Baixar PDF", export_pdf(df_view), "despesas.pdf")
-    else:
-        st.info("Nenhuma despesa cadastrada ainda.")
-
-
-if not st.session_state.logged:
-    login()
-else:
-    app()
+    st.download_button(
+        "Download PDF",
+        data=buffer.getvalue(),
+        file_name=f"Financas_{mes}.pdf",
+        mime="application/pdf"
+    )
