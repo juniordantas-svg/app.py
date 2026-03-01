@@ -5,6 +5,8 @@ from dateutil.relativedelta import relativedelta
 import plotly.express as px
 import os
 import io
+import time
+
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
@@ -20,16 +22,32 @@ COLS = [
     "Parcela","Total Parcelas","Pago","Data Pagamento"
 ]
 
-# ================= CSS =================
+# ================= CSS GLOBAL =================
 st.markdown("""
 <style>
 .big-title{
 text-align:center;
-font-size:40px;
+font-size:42px;
 font-weight:800;
 background:linear-gradient(90deg,#8a2be2,#00c6ff);
 -webkit-background-clip:text;
 -webkit-text-fill-color:transparent;
+}
+
+.login-container{
+height:85vh;
+display:flex;
+justify-content:center;
+align-items:center;
+}
+
+.login-box{
+width:380px;
+padding:40px;
+border-radius:22px;
+background:rgba(20,20,30,0.90);
+backdrop-filter:blur(14px);
+box-shadow:0 20px 60px rgba(0,0,0,0.45);
 }
 </style>
 """, unsafe_allow_html=True)
@@ -54,45 +72,30 @@ if "logged" not in st.session_state:
     st.session_state.logged = False
 if "user" not in st.session_state:
     st.session_state.user = None
+if "tentativas" not in st.session_state:
+    st.session_state.tentativas = 0
+if "bloqueado_ate" not in st.session_state:
+    st.session_state.bloqueado_ate = None
 
 # ================= LOGIN PREMIUM =================
 def login():
 
-    # CSS centralizador real
-    st.markdown("""
-    <style>
-    .login-container {
-        height: 80vh;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-    .login-box {
-        width: 380px;
-        padding: 40px;
-        border-radius: 20px;
-        background: rgba(20,20,30,0.85);
-        backdrop-filter: blur(12px);
-        box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-    }
-    .login-title {
-        text-align: center;
-        font-size: 32px;
-        font-weight: 800;
-        margin-bottom: 25px;
-        background: linear-gradient(90deg,#8a2be2,#00c6ff);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+    # 🔒 bloqueio
+    if st.session_state.bloqueado_ate:
+        if datetime.now() < st.session_state.bloqueado_ate:
+            st.error("🔒 Muitas tentativas. Aguarde 30 segundos.")
+            st.stop()
+        else:
+            st.session_state.tentativas = 0
+            st.session_state.bloqueado_ate = None
 
     st.markdown('<div class="login-container">', unsafe_allow_html=True)
     st.markdown('<div class="login-box">', unsafe_allow_html=True)
-    st.markdown('<div class="login-title">💑 Finanças Casal</div>', unsafe_allow_html=True)
+    st.markdown('<div class="big-title">💑 Finanças Casal</div>', unsafe_allow_html=True)
 
-    # 🔥 FORM (enter funciona)
-    with st.form("login_form", clear_on_submit=False):
+    lembrar = st.checkbox("Lembrar usuário")
+
+    with st.form("login_form"):
 
         user = st.text_input("Usuário", key="login_user")
         pwd = st.text_input("Senha", type="password", key="login_pwd")
@@ -101,27 +104,38 @@ def login():
 
         if submitted:
             u = user.lower().strip()
+
             if u in USERS and USERS[u] == pwd:
+
+                # loading premium
+                with st.spinner("🔐 Entrando..."):
+                    time.sleep(1)
+
                 st.session_state.logged = True
                 st.session_state.user = u
+                st.session_state.tentativas = 0
                 st.rerun()
+
             else:
+                st.session_state.tentativas += 1
                 st.error("Usuário ou senha inválidos")
 
+                if st.session_state.tentativas >= 3:
+                    st.session_state.bloqueado_ate = datetime.now() + pd.Timedelta(seconds=30)
+                    st.error("🔒 Acesso bloqueado por 30s")
+
     st.markdown('</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # 🔥 AUTO-FOCUS + ENTER FLOW
+    # 🔥 ENTER FLOW + AUTOFOCUS
     st.components.v1.html(
         """
         <script>
         const inputs = window.parent.document.querySelectorAll('input');
-
-        if (inputs.length >= 2) {
+        if (inputs.length >= 2){
             inputs[0].focus();
-
-            inputs[0].addEventListener("keydown", function(e) {
-                if (e.key === "Enter") {
+            inputs[0].addEventListener("keydown", function(e){
+                if(e.key==="Enter"){
                     e.preventDefault();
                     inputs[1].focus();
                 }
@@ -132,10 +146,14 @@ def login():
         height=0,
     )
 
+# ================= CHAMA LOGIN =================
+if not st.session_state.logged:
+    login()
+    st.stop()
+
 # ================= HEADER =================
 st.markdown('<div class="big-title">💑 Finanças Casal JR & VIC</div>', unsafe_allow_html=True)
 
-# filtra usuário
 df_user = df[df["Usuario"] == st.session_state.user]
 
 # ================= NOVA COMPRA =================
@@ -197,12 +215,7 @@ for idx,row in df_mes.iterrows():
     cols[1].write(f"R$ {row['Valor Parcela']:,.2f}")
     cols[2].write(f"{int(row['Parcela'])}ª de {int(row['Total Parcelas'])}x")
 
-    # checkbox pago
-    pago_chk = cols[3].checkbox(
-        "Pago",
-        value=bool(row["Pago"]),
-        key=f"pg_{idx}"
-    )
+    pago_chk = cols[3].checkbox("Pago", bool(row["Pago"]), key=f"pg_{idx}")
 
     if pago_chk != row["Pago"]:
         df.loc[idx,"Pago"] = pago_chk
@@ -210,7 +223,6 @@ for idx,row in df_mes.iterrows():
         save_data(df)
         st.rerun()
 
-    # excluir
     if cols[4].button("🗑️", key=f"del_{idx}"):
         df = df.drop(idx)
         save_data(df)
@@ -261,4 +273,3 @@ if st.button("Baixar PDF"):
         file_name=f"Relatorio_{mes}.pdf",
         mime="application/pdf"
     )
-
