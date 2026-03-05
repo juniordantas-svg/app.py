@@ -36,35 +36,65 @@ def gerar_alunos():
 # LOGIN ESTILIZADO
 # =============================
 def tela_login():
-    # Caixa de login centralizada, fundo branco
+    # Caixa de login centralizada com cores modernas
     html_code = """
     <style>
       body {
         margin:0;
         padding:0;
-        background-color:#ffffff;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         height:100vh;
         display:flex;
         justify-content:center;
         align-items:center;
-        font-family: Arial, sans-serif;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       }
       .login-box {
-        background-color:#f8f9fa;
+        background-color:#ffffff;
         padding:50px 40px;
-        border-radius:15px;
-        box-shadow:0 8px 25px rgba(0,0,0,0.2);
-        width:350px;
+        border-radius:20px;
+        box-shadow:0 10px 30px rgba(0,0,0,0.2);
+        width:360px;
         text-align:center;
+        transition: all 0.3s ease;
+      }
+      .login-box:hover {
+        transform: translateY(-5px);
+        box-shadow:0 15px 35px rgba(0,0,0,0.25);
       }
       .login-box h2 {
-        margin-bottom:25px;
+        margin-bottom:20px;
         color:#333;
+        font-weight: 700;
+        font-size:22px;
       }
       .login-box p {
-        color:#555;
+        color:#666;
         font-size:14px;
-        margin-bottom:20px;
+        margin-bottom:25px;
+      }
+      .stTextInput>div>div>input {
+        border-radius:10px;
+        padding:12px;
+        border:1px solid #ddd;
+        width:100%;
+        font-size:16px;
+      }
+      .stButton>button {
+        width:100%;
+        padding:14px;
+        margin-top:15px;
+        border-radius:10px;
+        border:none;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color:white;
+        font-size:17px;
+        font-weight:bold;
+        cursor:pointer;
+        transition: all 0.3s ease;
+      }
+      .stButton>button:hover {
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
       }
     </style>
     <div class="login-box">
@@ -74,7 +104,7 @@ def tela_login():
     """
     components.html(html_code, height=300)
 
-    # Formulário Streamlit
+    # Formulário Streamlit centralizado
     col1, col2, col3 = st.columns([2,1,2])
     with col2:
         usuario = st.text_input("Usuário")
@@ -85,56 +115,6 @@ def tela_login():
                 st.rerun()
             else:
                 st.error("Usuário ou senha inválidos")
-
-# =============================
-# DASHBOARD (APÓS LOGIN)
-# =============================
-def tela_sistema():
-    st.title("📊 Dashboard Acadêmico")
-    
-    col1, col2 = st.columns([9,1])
-    with col2:
-        if st.button("Sair"):
-            st.session_state.logado = False
-            st.rerun()
-    
-    st.markdown("---")
-    
-    if "df_alunos" not in st.session_state:
-        st.session_state.df_alunos = gerar_alunos()
-    df = st.session_state.df_alunos
-    
-    st.subheader("Lista de Alunos (Edite as notas)")
-    df_editado = st.data_editor(
-        df,
-        use_container_width=True,
-        disabled=["Aluno","Média","Status"],
-        num_rows="fixed"
-    )
-    df_editado["Média"] = round((df_editado["Nota 1"] + df_editado["Nota 2"])/2,1)
-    df_editado["Status"] = df_editado["Média"].apply(lambda x: "Aprovado" if x>=6 else "Reprovado")
-    st.session_state.df_alunos = df_editado
-    
-    st.markdown("---")
-    
-    total_alunos = len(df_editado)
-    aprovados = len(df_editado[df_editado["Status"]=="Aprovado"])
-    reprovados = len(df_editado[df_editado["Status"]=="Reprovado"])
-    media_geral = round(df_editado["Média"].mean(),2)
-    
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total de Alunos", total_alunos)
-    col2.metric("Aprovados", aprovados)
-    col3.metric("Reprovados", reprovados)
-    col4.metric("Média Geral", media_geral)
-    
-    st.markdown("---")
-    
-    st.subheader("Distribuição Aprovados x Reprovados")
-    st.bar_chart(df_editado["Status"].value_counts())
-    
-    st.subheader("Média por Aluno")
-    st.bar_chart(df_editado.set_index("Aluno")["Média"])
 
 # =============================
 # CONTROLE
