@@ -9,8 +9,8 @@ if "logado" not in st.session_state:
 
 def gerar_alunos():
     nomes = [
-        "Ana Silva", "Bruno Costa", "Carla Mendes",
-        "Daniel Souza", "Eduarda Lima", "Felipe Rocha",
+        "Junior Silva", "Mariane Costa", "Lamari Lima",
+        "Jessica Mendes", "Eduarda Lima", "Felipe Rocha",
         "Gabriela Alves", "Henrique Martins",
         "Isabela Ramos", "João Ferreira"
     ]
