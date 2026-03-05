@@ -1,118 +1,82 @@
+# streamlit_app.py
+import streamlit as st
+import streamlit.components.v1 as components
+
+# Título do app
+st.set_page_config(page_title="Login - Cadeia de Custódia", page_icon="🔒", layout="centered")
+
+# HTML + CSS do login
+html_code = """
 <!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+<html>
+  <head>
     <style>
-        /* Reset básico */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        body, html {
-            height: 100%;
-            background-color: #1f1f1f; /* fundo uniforme */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .login-container {
-            background-color: #2c2c2c; /* cor do cartão */
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.6);
-            width: 320px;
-            text-align: center;
-        }
-
-        .login-container img {
-            width: 120px;
-            margin-bottom: 20px;
-        }
-
-        .login-container h2 {
-            color: #ffffff;
-            margin-bottom: 20px;
-        }
-
-        .login-container input {
-            width: 100%;
-            padding: 12px;
-            margin: 8px 0;
-            border: none;
-            border-radius: 6px;
-            background-color: #3a3a3a;
-            color: #ffffff;
-            font-size: 16px;
-        }
-
-        .login-container input::placeholder {
-            color: #bfbfbf;
-        }
-
-        .login-container button {
-            width: 100%;
-            padding: 12px;
-            margin-top: 16px;
-            border: none;
-            border-radius: 6px;
-            background-color: #ff6b6b; /* cor do botão */
-            color: #fff;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
-        .login-container button:hover {
-            background-color: #ff5252;
-        }
-
-        /* Mensagem de erro */
-        .error {
-            color: #ff4c4c;
-            margin-top: 10px;
-            font-size: 14px;
-            display: none;
-        }
+      body {
+        background-color: #f5f5f5;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        font-family: Arial, sans-serif;
+      }
+      .login-container {
+        background-color: #ffffff;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        width: 350px;
+        text-align: center;
+      }
+      h2 {
+        color: #333333;
+        margin-bottom: 20px;
+      }
+      input {
+        width: 80%;
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        font-size: 14px;
+      }
+      button {
+        width: 85%;
+        padding: 12px;
+        margin-top: 15px;
+        border: none;
+        border-radius: 6px;
+        background-color: #4CAF50;
+        color: white;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #45a049;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="login-container">
-        <img src="logo.png" alt="Logo"> <!-- coloque sua logo aqui -->
-        <h2>Login</h2>
-        <input type="text" id="username" placeholder="Usuário">
-        <input type="password" id="password" placeholder="Senha">
-        <button onclick="login()">Entrar</button>
-        <div class="error" id="errorMsg">Usuário ou senha incorretos</div>
+      <h2>Login</h2>
+      <input id="username" type="text" placeholder="Usuário"><br>
+      <input id="password" type="password" placeholder="Senha"><br>
+      <button onclick="login()">Entrar</button>
     </div>
-
+    
     <script>
-        function login() {
-            const user = document.getElementById('username').value;
-            const pass = document.getElementById('password').value;
-            const errorDiv = document.getElementById('errorMsg');
-
-            // Aqui você pode validar com backend ou dados estáticos
-            if(user === 'admin' && pass === '1234') {
-                alert('Login realizado com sucesso!');
-                errorDiv.style.display = 'none';
-                // redirecionar ou abrir próxima página
-            } else {
-                errorDiv.style.display = 'block';
-            }
+      function login() {
+        const user = document.getElementById('username').value;
+        const pass = document.getElementById('password').value;
+        if(user && pass){
+          alert('Bem-vindo, ' + user + '!');
+        } else {
+          alert('Por favor, preencha todos os campos.');
         }
-
-        // Permitir login ao pressionar Enter
-        document.addEventListener('keydown', function(e) {
-            if(e.key === 'Enter') {
-                login();
-            }
-        });
+      }
     </script>
-</body>
+  </body>
 </html>
+"""
+
+# Exibir o HTML no Streamlit
+components.html(html_code, height=500)
