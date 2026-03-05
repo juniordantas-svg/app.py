@@ -36,17 +36,27 @@ def tela_sistema():
     st.markdown("---")
     df_alunos = gerar_alunos()
     st.subheader("📊 Notas dos Alunos")
-    st.dataframe(df_alunos, use_container_width=True)
+
+    # Use data_editor para permitir edição
+    df_editavel = st.data_editor(
+        df_alunos,
+        num_rows="dynamic",  # permite alterar número de linhas se quiser
+        use_container_width=True
+    )
+
+    # Recalcular status automaticamente após edição
+    df_editavel["Média"] = ((df_editavel["Nota 1"] + df_editavel["Nota 2"]) / 2).round(1)
+    df_editavel["Status"] = df_editavel["Média"].apply(lambda x: "Aprovado" if x >= 6 else "Reprovado")
 
     st.markdown("---")
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Total de Alunos", len(df_alunos))
+        st.metric("Total de Alunos", len(df_editavel))
     with col2:
-        aprovados = len(df_alunos[df_alunos["Status"] == "Aprovado"])
+        aprovados = len(df_editavel[df_editavel["Status"] == "Aprovado"])
         st.metric("Aprovados", aprovados)
     with col3:
-        reprovados = len(df_alunos[df_alunos["Status"] == "Reprovado"])
+        reprovados = len(df_editavel[df_editavel["Status"] == "Reprovado"])
         st.metric("Reprovados", reprovados)
 
 def tela_login():
