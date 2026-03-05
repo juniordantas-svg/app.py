@@ -65,33 +65,20 @@ def tela_sistema():
 # =============================
 # LOGIN ESTILIZADO - DESIGN AZUL COM ILUSTRAÇÃO
 # =============================
+# =============================
+# LOGIN ESTILIZADO FUNCIONAL
+# =============================
 def tela_login():
-    # CSS Personalizado - Baseado na imagem fornecida
+    # CSS Personalizado
     st.markdown("""
     <style>
-        /* Remover padding padrão do Streamlit */
-        .block-container {
-            padding: 0 !important;
-            max-width: 100% !important;
-        }
+        .block-container {padding: 0 !important; max-width: 100% !important;}
+        header, footer, #MainMenu {visibility: hidden;}
+        .stApp {background: #f5f5f5;}
+        [data-testid="column"] {padding: 0 !important;}
 
-        /* Esconder header e footer do Streamlit */
-        header {visibility: hidden;}
-        footer {visibility: hidden;}
-        #MainMenu {visibility: hidden;}
-
-        /* Estilo do corpo - fundo branco */
-        .stApp {
-            background: #f5f5f5;
-        }
-
-        /* Container de duas colunas */
-        [data-testid="column"] {
-            padding: 0 !important;
-        }
-
-        /* Inputs customizados - brancos com borda arredondada */
-        .stTextInput > div > div > input {
+        /* Inputs customizados */
+        .stTextInput>div>div>input {
             border-radius: 25px;
             padding: 15px 20px;
             border: none;
@@ -99,24 +86,11 @@ def tela_login():
             background: white;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
+        .stTextInput>div>div>input::placeholder {color: #999;}
+        .stTextInput>label {display: none;}
 
-        .stTextInput > div > div > input::placeholder {
-            color: #999;
-        }
-
-        /* Esconder labels */
-        .stTextInput > label {
-            display: none;
-        }
-
-        /* Checkbox remember me */
-        .stCheckbox {
-            color: white;
-            font-size: 13px;
-        }
-
-        /* Botão de login - verde */
-        .stButton > button {
+        /* Botão SUBMIT */
+        .stButton>button {
             width: 100%;
             padding: 15px;
             border-radius: 25px;
@@ -132,17 +106,10 @@ def tela_login():
             letter-spacing: 1px;
             box-shadow: 0 4px 12px rgba(0,200,81,0.3);
         }
-
-        .stButton > button:hover {
+        .stButton>button:hover {
             background: #00A843;
             transform: translateY(-2px);
             box-shadow: 0 6px 16px rgba(0,200,81,0.4);
-        }
-
-        /* Mensagem de erro */
-        .stAlert {
-            border-radius: 15px;
-            margin-top: 15px;
         }
     </style>
     """, unsafe_allow_html=True)
@@ -157,44 +124,30 @@ def tela_login():
             background: linear-gradient(180deg, #00B4DB 0%, #0083B0 100%);
             height: 100vh;
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
             padding: 60px 40px;
             box-shadow: 4px 0 20px rgba(0,0,0,0.1);
         ">
-            <div style="width: 100%; max-width: 340px;">
-                <h1 style="
-                    color: white;
-                    font-size: 32px;
-                    font-weight: 300;
-                    letter-spacing: 3px;
-                    margin-bottom: 50px;
-                    text-align: center;
-                ">WELCOME</h1>
+            <div style="width: 100%; max-width: 340px; text-align: center; color: white;">
+                <h1 style="font-size: 32px; font-weight: 300; letter-spacing: 3px; margin-bottom: 50px;">WELCOME</h1>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        # Formulário dentro do painel azul
-        st.markdown('<div style="margin-top: -580px; padding: 0 40px;">', unsafe_allow_html=True)
-
+        # Formulário funcional do Streamlit
         with st.form("login_form", clear_on_submit=False):
             usuario = st.text_input(
-                "usuario",
+                "Usuário",
                 placeholder="Username",
-                key="usuario_input",
-                label_visibility="collapsed"
+                key="usuario_input"
             )
-
             senha = st.text_input(
-                "senha",
+                "Senha",
                 type="password",
                 placeholder="Password",
-                key="senha_input",
-                label_visibility="collapsed"
+                key="senha_input"
             )
-
             col_check, col_forgot = st.columns([1, 1])
             with col_check:
                 remember = st.checkbox("Remember", key="remember_check")
@@ -212,7 +165,22 @@ def tela_login():
                 else:
                     st.error("❌ Usuário ou senha inválidos")
 
-        st.markdown('</div>', unsafe_allow_html=True)
+    # ========== COLUNA DIREITA - ILUSTRAÇÃO ==========
+    with col2:
+        st.markdown("""
+        <div style="
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: white;
+            position: relative;
+            overflow: hidden;
+        ">
+            <!-- Aqui você pode colocar seu SVG ou imagem -->
+            <img src="https://i.imgur.com/your_image.png" style="max-width:100%;"/>
+        </div>
+        """, unsafe_allow_html=True)
 
     # ========== COLUNA DIREITA - ILUSTRAÇÃO ==========
     with col2:
