@@ -36,80 +36,85 @@ def gerar_alunos():
 # LOGIN ESTILIZADO
 # =============================
 def tela_login():
-    # Caixa de login centralizada com cores modernas
+    # HTML + CSS moderno inspirado no portal
     html_code = """
     <style>
       body {
         margin:0;
         padding:0;
+        font-family: 'Nunito', sans-serif;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        height:100vh;
-        display:flex;
-        justify-content:center;
-        align-items:center;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       }
-      .login-box {
-        background-color:#ffffff;
-        padding:50px 40px;
-        border-radius:20px;
-        box-shadow:0 10px 30px rgba(0,0,0,0.2);
-        width:360px;
-        text-align:center;
+      .login-container {
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .login-card {
+        background-color: #fff;
+        padding: 40px 30px;
+        border-radius: 15px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        width: 360px;
+        text-align: center;
         transition: all 0.3s ease;
       }
-      .login-box:hover {
+      .login-card:hover {
         transform: translateY(-5px);
-        box-shadow:0 15px 35px rgba(0,0,0,0.25);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.25);
       }
-      .login-box h2 {
-        margin-bottom:20px;
-        color:#333;
+      .login-card h2 {
+        font-size: 22px;
         font-weight: 700;
-        font-size:22px;
+        color: #333;
+        margin-bottom: 10px;
       }
-      .login-box p {
-        color:#666;
-        font-size:14px;
-        margin-bottom:25px;
+      .login-card p {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 25px;
       }
       .stTextInput>div>div>input {
-        border-radius:10px;
-        padding:12px;
-        border:1px solid #ddd;
-        width:100%;
-        font-size:16px;
+        border-radius: 10px;
+        padding: 12px;
+        border: 1px solid #ddd;
+        font-size: 16px;
+        width: 100%;
+        margin-bottom: 15px;
       }
       .stButton>button {
-        width:100%;
-        padding:14px;
-        margin-top:15px;
-        border-radius:10px;
-        border:none;
+        width: 100%;
+        padding: 14px;
+        border-radius: 10px;
+        border: none;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color:white;
-        font-size:17px;
-        font-weight:bold;
-        cursor:pointer;
+        color: #fff;
+        font-size: 17px;
+        font-weight: bold;
+        cursor: pointer;
         transition: all 0.3s ease;
       }
       .stButton>button:hover {
         background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
       }
     </style>
-    <div class="login-box">
-        <h2>CADEIA DE CUSTÓDIA NA ERA DIGITAL</h2>
-        <p>Painel Acadêmico Demonstrativo</p>
+
+    <div class="login-container">
+      <div class="login-card">
+        <h2>Portal Universitas</h2>
+        <p>Acesso exclusivo para alunos, professores e coordenadores</p>
+      </div>
     </div>
     """
-    components.html(html_code, height=300)
+    components.html(html_code, height=250)
 
-    # Formulário Streamlit centralizado
+    # Formulário Streamlit
     col1, col2, col3 = st.columns([2,1,2])
     with col2:
-        usuario = st.text_input("Usuário")
+        usuario = st.text_input("Matrícula / Usuário")
         senha = st.text_input("Senha", type="password")
-        if st.button("ENTRAR"):
+        if st.button("Entrar"):
             if usuario == "dantas" and senha == "1234":
                 st.session_state.logado = True
                 st.rerun()
