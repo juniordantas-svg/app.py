@@ -55,21 +55,31 @@ def tela_login():
         header {visibility: hidden;}
         footer {visibility: hidden;}
         #MainMenu {visibility: hidden;}
+
+        /* Remover TODA caixa branca */
         .stApp {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
         }
         .block-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 2rem;
+            background: transparent !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            max-width: 100% !important;
         }
+        .main {
+            background: transparent !important;
+            padding: 0 !important;
+        }
+        section[data-testid="stSidebar"] {
+            display: none !important;
+        }
+
         .stTextInput > div > div > input {
             border-radius: 8px;
             padding: 12px 16px;
             border: 1px solid #ddd;
             font-size: 14px;
+            background: white;
         }
         .stTextInput > label {
             font-weight: 600;
@@ -80,6 +90,9 @@ def tela_login():
             font-weight: 600;
             color: #555;
             font-size: 14px;
+        }
+        .stCheckbox label {
+            color: #555;
         }
         .stButton > button {
             width: 100%;
@@ -101,8 +114,8 @@ def tela_login():
     col1, col2, col3 = st.columns([1, 2, 1])
 
     with col2:
-        st.markdown('<div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); margin-top: 50px;">', unsafe_allow_html=True)
-        
+        st.markdown('<div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">', unsafe_allow_html=True)
+
         st.markdown('<h2 style="text-align: center; color: #333; margin-bottom: 10px;">Portal Universitas</h2>', unsafe_allow_html=True)
         st.markdown('<p style="text-align: center; color: #666; font-size: 14px; margin-bottom: 30px;">Acesso exclusivo para alunos, professores e coordenadores</p>', unsafe_allow_html=True)
 
@@ -118,10 +131,10 @@ def tela_login():
             )
 
             col_mat, col_senha = st.columns(2)
-            
+
             with col_mat:
                 matricula = st.text_input("Matrícula", placeholder="Informe a matrícula")
-            
+
             with col_senha:
                 senha = st.text_input("Senha", type="password", placeholder="Informe a senha")
 
@@ -138,9 +151,9 @@ def tela_login():
                     st.error("❌ Matrícula ou senha inválidos")
 
         st.markdown('<p style="text-align: center; color: #666; font-size: 13px; margin-top: 20px;">Deseja trocar a senha? <a href="#" style="color: #0d6efd;">Trocar senha</a></p>', unsafe_allow_html=True)
-        
+
         st.markdown('</div>', unsafe_allow_html=True)
-        
+
         st.markdown('<p style="text-align: center; color: white; font-size: 12px; margin-top: 30px;">© 2026. Todos os direitos reservados. Portal Universitas</p>', unsafe_allow_html=True)
 
 if not st.session_state.logado:
