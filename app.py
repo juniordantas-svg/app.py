@@ -1,6 +1,6 @@
+# streamlit_app.py
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 import random
 import streamlit.components.v1 as components
 
@@ -36,28 +36,45 @@ def gerar_alunos():
 # LOGIN ESTILIZADO
 # =============================
 def tela_login():
-    # HTML + CSS do login
+    # Fundo colorido e caixa centralizada
     html_code = """
     <style>
-      body {background-color:#f5f5f5; font-family: Arial, sans-serif;}
-      .login-container {
-        background-color:#fff; padding:40px; border-radius:12px; 
-        box-shadow:0 4px 12px rgba(0,0,0,0.15); width:350px; text-align:center;
-        margin:auto; margin-top:100px;
+      body {
+        margin:0;
+        padding:0;
+        background: linear-gradient(135deg, #4e73df, #1cc88a);
+        height:100vh;
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        font-family: Arial, sans-serif;
       }
-      h2 {color:#333; margin-bottom:20px;}
-      input {width:80%; padding:10px; margin:10px 0; border-radius:6px; border:1px solid #ccc;}
-      button {width:85%; padding:12px; margin-top:15px; border:none; border-radius:6px; background-color:#4CAF50; color:white; font-size:16px; cursor:pointer;}
-      button:hover {background-color:#45a049;}
+      .login-box {
+        background-color:#fff;
+        padding:50px 40px;
+        border-radius:15px;
+        box-shadow:0 8px 25px rgba(0,0,0,0.3);
+        width:350px;
+        text-align:center;
+      }
+      .login-box h2 {
+        margin-bottom:25px;
+        color:#333;
+      }
+      .login-box p {
+        color:#555;
+        font-size:14px;
+        margin-bottom:20px;
+      }
     </style>
-    <div class="login-container">
-      <h2>CADEIA DE CUSTÓDIA NA ERA DIGITAL</h2>
-      <p>Painel Acadêmico Demonstrativo</p>
+    <div class="login-box">
+        <h2>CADEIA DE CUSTÓDIA NA ERA DIGITAL</h2>
+        <p>Painel Acadêmico Demonstrativo</p>
     </div>
     """
-    components.html(html_code, height=200)
-    
-    # Formulário de login Streamlit
+    components.html(html_code, height=300)
+
+    # Formulário Streamlit
     col1, col2, col3 = st.columns([2,1,2])
     with col2:
         usuario = st.text_input("Usuário")
@@ -83,28 +100,23 @@ def tela_sistema():
     
     st.markdown("---")
     
-    # Gerar dados apenas uma vez
     if "df_alunos" not in st.session_state:
         st.session_state.df_alunos = gerar_alunos()
     df = st.session_state.df_alunos
     
     st.subheader("Lista de Alunos (Edite as notas)")
-    
     df_editado = st.data_editor(
         df,
         use_container_width=True,
         disabled=["Aluno","Média","Status"],
         num_rows="fixed"
     )
-    
-    # Recalcular média e status
     df_editado["Média"] = round((df_editado["Nota 1"] + df_editado["Nota 2"])/2,1)
     df_editado["Status"] = df_editado["Média"].apply(lambda x: "Aprovado" if x>=6 else "Reprovado")
     st.session_state.df_alunos = df_editado
     
     st.markdown("---")
     
-    # Métricas
     total_alunos = len(df_editado)
     aprovados = len(df_editado[df_editado["Status"]=="Aprovado"])
     reprovados = len(df_editado[df_editado["Status"]=="Reprovado"])
@@ -118,7 +130,6 @@ def tela_sistema():
     
     st.markdown("---")
     
-    # Gráficos
     st.subheader("Distribuição Aprovados x Reprovados")
     st.bar_chart(df_editado["Status"].value_counts())
     
